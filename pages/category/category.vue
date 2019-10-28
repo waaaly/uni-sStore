@@ -1,45 +1,39 @@
 <template>
 	<view>
 		<!-- 状态栏 -->
-		<view class="status" :style="{position:headerPosition}"></view>
-        <view class="header" :style="{position:headerPosition}">
+		<view v-if="showHeader" class="status" :style="{position:headerPosition}"></view>
+        <view v-if="showHeader" class="header" :style="{position:headerPosition}">
 			<view class="title">分类</view>
-			<!-- <view class="addr"><view class="icon location"></view>{{city}}</view>
-			<view class="input-box">
-				<input placeholder="默认关键字" placeholder-style="color:#c0c0c0;" @tap="toSearch()"/>
-				<view class="icon search"></view>
-			</view>
-			<view class="icon-btn">
-				<view class="icon tongzhi" @tap="toMsg"></view>
-			</view> -->
 		</view>
 		<!-- 占位 -->
-		<view class="place"></view>
+		<view v-if="showHeader" class="place"></view>
 		<view class="category-list">
 			<!-- 左侧分类导航 -->
 			<scroll-view  scroll-y="true" class="left" >
-                <view class="row" v-for="(category,index) in categoryList" :key="category.id" :class="[index==showCategoryIndex?'on':'']" 
+                <view class="row" v-for="(category,index) in cateList" :key="category.index" :class="[index==showCategoryIndex?'on':'']" 
 				@tap="showCategory(index)">
 					<view class="text">
 						<view class="block"></view>
-						{{category.title}}
+						{{category.name}}
 					</view>
 				</view>
 				
             </scroll-view>
 			<!-- 右侧子导航 -->
 			<scroll-view  scroll-y="true" class="right" >
-			    <view class="category" v-for="(category,index) in categoryList" :key="category.id" 
+			    <view class="category" v-for="(cate,index) in cateList" :key="index" 
 				v-show="index==showCategoryIndex" >
 					<view class="banner">
-						<image :src="category.banner"></image>
+						<image :src="cate.banner_url"  @error='imgErr(cate)'></image>
 					</view>
-					<view class="list">
-						<view class="box" v-for="(good,i) in category.goodList" :key="i" 
-						@tap="toCategory(good)">
-							<image :src="imageUrl + good.primary_pic_url"></image>
+					<view class="list" v-if="curGoodList.length!=0">
+						<view class="box" v-for="(good,i) in curGoodList" :key="i"  @tap="toCategory(good)" >
+							<image :src="good.primary_pic_url" @error='goodErr(good)'></image>
 							<view class="text">{{good.goods_name}}</view>
 						</view>
+					</view>
+					<view v-else>
+						<image style="width: 98%;margin-top:180rpx" src="../../static/img/noGood.png"></image>
 					</view>
 				</view>
 			</scroll-view>
@@ -56,20 +50,13 @@
 		data() {
 			return {
 				imageUrl:api.imageBaseUrl,
+				showHeader:false,//顶部占位符
 				showCategoryIndex:0,
 				headerPosition:"fixed",
-				city:"北京",
-				//分类列表
-				categoryList:[
-					{
-						id:1,
-						title:'家用电器',
-						banner:'/static/img/category/banner.jpg',
-						goodList:[],
-					}
-				],
-				//所有分类商品列表
-				allProduct:[]
+				//分类列表包含分类名、banner、商品列表
+				cateList:[],
+				//当前分类商品列表
+				curGoodList:[]
 			}
 		},
 		onPageScroll(e){
@@ -81,39 +68,26 @@
 			}
 		},
 		onLoad() {
-			http.get(api.GoodsCategory,{}).then(res=>{
-				console.log(res)
-				let categoryItem =Object.assign({},this.categoryList[0]);
-				this.categoryList = [];
-				for(let index in res.brotherCategory){
-					categoryItem['title']=res.brotherCategory[index].name;
-					categoryItem['banner'] = res.brotherCategory[index].banner_url;
-					this.categoryList.push(categoryItem);
-					categoryItem =Object.assign({},this.categoryList[0]);
-				}
-				// console.log(this.categoryList)
+			http.get(api.GoodsCategory,{},false).then(res=>{
+				this.cateList = res.brotherCategory;
+				this.curGoodList = res.brotherCategory[0].subCategoryList;
 			})
-			http.get(api.GoodListAddress,{district:'番禺区'}).then(res=>{
-				console.log(res);
-				this.allProduct = res;
-				this.getProduct(0);
-			})
-			// http.get(api.GoodsList,{}).then(res=>{
-			// 	console.log(res)
+			// http.get(api.GoodListAddress,{district:'番禺区'},false).then(res=>{
+			// 	console.log(res);
+			// 	this.allProduct = res;
+			// 	this.getProduct(0);
 			// })
-			// this.amapPlugin = new amap.AMapWX({  
-			// 	//高德地图KEY，随时失效，请务必替换为自己的KEY，参考：http://ask.dcloud.net.cn/article/35070
-			// 	key: '7c235a9ac4e25e482614c6b8eac6fd8e'  
-			// });
-			// //定位地址
-			// this.amapPlugin.getRegeo({  
-			// 	success: (data) => {
-			// 		this.city = data[0].regeocodeData.addressComponent.city.replace(/市/g,'');//把"市"去掉
-			// 	}  
-			// }); 
 		},
 		
 		methods: {
+			//banner加载失败
+			imgErr(cate){
+				cate.banner_url = '../../static/img/imgErr.jpg';
+			},
+			//商品加载失败
+			goodErr(good){
+				good.primary_pic_url ='../../static/img/imgErr.jpg';
+			},
 			//消息列表
 			toMsg(){
 				uni.navigateTo({
@@ -122,31 +96,20 @@
 			},
 			//分类切换显示
 			showCategory(index){
-				console.log(index);
 				this.getProduct(index);
 				this.showCategoryIndex = index;
 			},
 			//获取分类商品
 			getProduct(categoryIndex){
-				for(let item of this.allProduct){
-					if(this.categoryList[categoryIndex].title == item.name){
-						this.categoryList[categoryIndex].goodList = item.goodList;
-						break;
-					}else{
-						console.log(item.name)
-					}
-				}
+				this.curGoodList = this.cateList[categoryIndex].subCategoryList;
 			},
 			toCategory(e){
-				uni.setStorageSync('catName',e.name);
+				console.log(e)
 				uni.navigateTo({
-					url: '../../goods/goods-list/goods-list?cid='+e.id+'&name='+e.name
-				});
+					url:`../goodDetail/goodDetail?good_id=${e.good_id}&shop_id=${e.shop_id}`,
+				})
 			},
-			//搜索跳转
-			toSearch(){
-				uni.showToast({title: "建议跳转到新页面做搜索功能"});
-			}
+
 		}
 	}
 </script>
@@ -251,12 +214,11 @@
 		display: flex;
 		.left,.right{
 			position: absolute;
-			
-			top: 100upx;
+			// top: 100upx;
 			/*  #ifdef  APP-PLUS  */
 			top: calc(100upx + var(--status-bar-height));
 			/*  #endif  */
-			bottom: 0upx;
+			// bottom: 0upx;
 		}
 		.left{
 			width: 24%;
@@ -286,7 +248,7 @@
 					.text{
 						font-size: 30upx;
 						font-weight: 600;
-						color: #2d2d2d;
+						color: #ff743c;
 						.block{
 							width: 10upx;
 							height: 80%;

@@ -17,12 +17,13 @@
 		<view class="user">
 			<!-- 头像 -->
 			<view class="left">
-				<image :src="user.face" @tap="toSetting"></image>
+				<image :src="user.avatar" @tap="toSetting"></image>
 			</view>
 			<!-- 昵称,个性签名 -->
 			<view class="right">
-				<view class="username" @tap="toLogin">{{user.username}}</view>
-				<view class="signature" @tap="toSetting">{{user.signature}}</view>
+				<view class="username" @tap="toLogin">{{user.name}}</view>
+				<view class="signature" v-if="user.role===0">普通用户</view>
+				<view class="signature" v-else @tap="toLogin">{{user.signature}}</view>
 			</view>
 			<!-- 二维码按钮 -->
 			<view class="erweima" @tap="toMyQR">
@@ -87,7 +88,7 @@
 			</view>
 		</view>
 		<!-- 占位 -->
-		<view class="place-bottom"></view>
+		<!-- <view class="place-bottom"></view> -->
 	</view>
 </template>
 <script>
@@ -102,12 +103,12 @@
 				showHeader:true,
 				//个人信息,
 				user:{
-					username:'游客1002',
-					face:'/static/user/face.jpg',
-					signature:'点击昵称跳转登录/注册页',
+					name:'游客您好',
+					avatar:'/static/user/face.jpg',
+					signature:'点击跳转登录/注册页',
 					integral:0,
+					envelope:0,
 					balance:0,
-					envelope:0
 				},
 				// 订单类型
 				orderList:[
@@ -119,12 +120,12 @@
 				],
 				// 工具栏列表
 				mytoolbarList:[
-					{url:'../../user/keep/keep',text:'我的收藏',img:'/static/user/point.png'},
-					{url:'../../user/coupon/coupon',text:'优惠券',img:'/static/user/quan.png'}, 
+					{url:'../collect/collect',text:'我的收藏',img:'/static/user/point.png'},
+					{url:'../coupon/coupon',text:'优惠券',img:'/static/user/quan.png'}, 
 					{url:'',text:'新客豪礼',img:'/static/user/renw.png'},
 					{url:'',text:'领红包',img:'/static/user/momey.png'},
 					
-					{url:'../../user/address/address',text:'收货地址',img:'/static/user/addr.png'},
+					{url:'../address/list',text:'收货地址',img:'/static/user/addr.png'},
 					{url:'',text:'账户安全',img:'/static/user/security.png'},
 					{url:'',text:'银行卡',img:'/static/user/bank.png'},
 					{url:'',text:'抽奖',img:'/static/user/choujiang.png'},
@@ -154,19 +155,11 @@
 			// #endif
 		},
 		onReady(){
-			//此处，演示,每次页面初次渲染都把登录状态重置
-			uni.setStorage({
-				key: 'UserInfo',
-				data: false,
-				success: function () {
-				},
-				fail:function(e){
-				}
-			});
+
 		},
 		onShow(){
 			uni.getStorage({
-				key: 'UserInfo',
+				key: 'userInfo',
 				success: (res)=>{
 					if(!res.data){
 						if(this.isfirst){
@@ -185,16 +178,15 @@
 			//消息列表
 			toMsg(){
 				uni.navigateTo({
-					url:'../../msg/msg'
+					url:'../msgList/msgList'
 				})
 			},
 			toOrderList(index){
-				uni.setStorageSync('tbIndex',index);
-				uni.navigateTo({url:'../../user/order_list/order_list?tbIndex='+index}) 
+				uni.navigateTo({url:'../orderList/orderList?tbIndex='+index}) 
 			},
 			toSetting(){
 				uni.navigateTo({
-					url:'../../user/setting/setting'
+					url:'../setting/setting'
 				})
 			},
 			toMyQR(){
@@ -203,9 +195,9 @@
 				})
 			},
 			toLogin(){
-				uni.showToast({title: '请登录',icon:"none"});
+				// uni.showToast({title: '请登录',icon:"none"});
 				uni.navigateTo({
-					url:'../../login/login'
+					url:'../login/login'
 				})
 				this.isfirst = false;
 			},
@@ -224,7 +216,7 @@
 			},
 			toPage(url){
 				if(!url){
-					uni.showToast({title: '模板未包含此页面',icon:"none"});return;
+					uni.showToast({title: '该功能正努力开发',icon:"none"});return;
 				}
 				uni.navigateTo({
 					url:url

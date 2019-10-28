@@ -9,13 +9,19 @@
 		{
 			"path": "pages/category/category",
 			"style": {
-				"navigationBarTitleText": ""
+				"navigationBarTitleText": "分类"
+			}
+		},
+		{
+			"path":"pages/groupBuy/groupBuy",
+			"style":{
+				"navigationBarTitleText":"团购"
 			}
 		},
 		{
 			"path":"pages/cart/cart",
 			"style":{
-				"navigationBarTitleText":""
+				"navigationBarTitleText":"购物车"
 			}
 		},
 		{
@@ -25,10 +31,91 @@
 				"navigationBarBackgroundColor": "#f06c7a"
 			}
 		}
-	],
+        ,{
+            "path" : "pages/login/login",
+            "style" : {
+				"navigationBarTitleText":"授权登录"
+			}
+        }
+        ,{
+            "path" : "pages/goodDetail/goodDetail",
+            "style" : {
+				"navigationBarTitleText":"商品详情"
+			}
+        }
+		,{
+		    "path" : "pages/address/list",
+		    "style" : {
+				"navigationBarTitleText":"地址管理"
+			}
+		}
+		,{
+		    "path" : "pages/address/edit",
+		    "style" : {
+				"navigationBarTitleText":"新增地址"
+			}
+		}
+        ,{
+            "path" : "pages/collect/collect",
+            "style" : {
+				"navigationBarTitleText":"我的收藏"
+			}
+        }
+        ,{
+            "path" : "pages/orderList/orderList",
+            "style" : {
+				"navigationBarTitleText":"我的订单",
+				"enablePullDownRefresh": true,  //设置为true表示当前页面开启下拉刷新
+				"backgroundTextStyle": "dark"
+			}
+        }
+        ,{
+            "path" : "pages/setting/setting",
+            "style" : {
+				"navigationBarTitleText":"个人中心"
+			}
+        }
+        ,{
+            "path" : "pages/orderConfirm/orderConfirm",
+            "style" : {
+				"navigationBarTitleText":"提交订单"
+			}
+        }
+        ,{
+            "path" : "pages/orderPay/orderPay",
+            "style" : {
+				"navigationBarTitleText":"确认支付"
+			}
+        }
+        ,{
+            "path" : "pages/orderDetail/orderDetail",
+            "style" : {
+				"navigationBarTitleText":"订单详情"
+			}
+        }
+        ,{
+            "path" : "pages/assess/assess",
+            "style" : {
+				"navigationBarTitleText":"全部评价"
+			}
+        }
+        ,{
+            "path" : "pages/coupon/coupon",
+            "style" : {
+				"navigationBarTitleText":"我的优惠券"
+			}
+        }
+        ,{
+            "path" : "pages/msgList/msgList",
+            "style" : {
+				"navigationBarTitleText":"消息列表",
+				"enablePullDownRefresh": true
+			}
+        }
+    ],
 	"globalStyle": {
 		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-app",
+		"navigationBarTitleText": "智趣尚衣品服",
 		"navigationBarBackgroundColor": "#ff743c",
 		"backgroundColor": "#F8F8F8"
 	},
@@ -48,6 +135,12 @@
 				"iconPath": "static/tabBar/category.png",
 				"selectedIconPath": "static/tabBar/category-on.png",
 				"text": "分类"
+			},
+			{
+				"pagePath": "pages/groupBuy/groupBuy",
+				"iconPath": "static/tabBar/团购-off.png",
+				"selectedIconPath": "static/tabBar/团购.png",
+				"text": "团购"
 			},
 			{
 				"pagePath": "pages/cart/cart",

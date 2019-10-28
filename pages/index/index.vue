@@ -1,121 +1,94 @@
 <template>
-	<view>
-		<!-- 状态栏 -->
-		<view class="status" :style="{position:headerPosition}"></view>
-		<!-- 漂浮头部 -->
-		<view class="header" :style="{position:headerPosition}">
-			<view class="scan">
-				<view class="icon scan" @tap="scan"></view>
-			</view>
-			<view class="input">
-				<view class="icon search"></view>
-				<input placeholder="睫毛膏" @tap="toSearch()" />
-			</view>
-			<view class="menu">
-				<image mode="widthFix" src="../../static/HM-shophome/face.png"></image>
-			</view>
-		</view>
-		<!-- 占位 -->
-		<view class="place"></view>
-		<!-- 轮播图 -->
-		<view class="swiper-view">
-			<swiper class="swiper" indicator-dots="true" autoplay="true" circular="true" indicator-active-color="#ffffff">
-				<swiper-item v-for="swiper in swiperList" :key="swiper.sid" @tap="toSwiper(swiper)">
-					<image mode="aspectFill" :src="imageUrl+swiper.pic_url"></image>
-				</swiper-item>
-			</swiper>
-			<view class="keep-out"></view>
-		</view>
-		<!-- 分类轮播 -->
-<!-- 		<view class="category">
-			<view class="box">
-				<swiper	class="swiper" duration="300" :style="{ height: categoryHeight }" @change="categoryChange">
-					<swiper-item v-for="(page, pageindex) in categoryList" :key="pageindex" >
-						<view class="category-list">
-							<view class="icon" v-for="category in page" :key="category.cat_id" @tap="toCategory(category)">
-								<image mode="widthFix" :src="category.img" @load="categoryImgLoad"></image>
-								<view>{{ category.title }}</view>
-							</view>
-						</view>
-					</swiper-item>
+		<view>
+			<loading ref='loading'>	</loading>
+			<!-- 状态栏 -->
+			<!-- <view class="status" :style="{position:headerPosition}"></view> -->
+			<!-- 漂浮头部 -->
+			<!-- <view class="header" :style="{position:headerPosition}">
+				<view class="scan">
+					<view class="icon scan" @tap="scan"></view>
+				</view>
+				<view class="input">
+					<view class="icon search"></view>
+					<input placeholder="让你好吃又好看~" @tap="toSearch()" />
+				</view>
+				<view class="menu">
+					<image mode="widthFix" src="../../static/user/face.png"></image>
+				</view>
+			</view> -->
+			<!-- 占位 -->
+			<!-- <view class="place"></view> -->
+			<!-- 轮播图 -->
+			<view class="swiper-view">
+				<swiper class="banner-swiper" indicator-dots="true" autoplay="true" interval="5000" 
+					  duration="150"  circular="true" previous-margin="60rpx" 
+					  next-margin="60rpx" @change="swiperChange">
+					<swiper-item v-for="(swiper,index) in swiperList" :key="index" class="swiper-item" @tap="toSwiper(swiper)">
+					  <image :src="swiper.pic_url" 					  
+					  :class="[cur_swiper!=index?'swiper-image image-scale':'swiper-image']"
+					  mode="scaleToFill"  @error='imgErr(index)'/>
+					</swiper-item> 
 				</swiper>
-				<view class="dots">
-					<view v-for="(page, pageindex) in categoryList" :key="pageindex" :class="{ active: pageindex == currentPageindex }"></view>
+				<view class="keep-out"></view>
+			</view>
+		
+			<!-- 推荐商品 -->
+			<!-- 滚动加载提示 -->
+			<view class="pick">
+				<view class="box">
+					<view class="title">
+						<view class="big">热门团购</view>
+						<view class="small">好货推荐 低价精选</view>
+					</view>
+					<view class="product-list">
+						<view v-for="product in pickList" :key="product.goods_id" @tap="toPick(product)">
+							<image mode="widthFix" :src="product.img"></image>
+							<view class="price">{{product.price}}</view>
+							<view class="slogan">{{product.slogan}}</view>
+						</view>
+					</view>
 				</view>
 			</view>
-		</view> -->
-		<!-- 推荐商品 -->
-		<view class="pick">
-			<view class="box">
-				<view class="title">
-					<view class="big">热门团购</view>
-					<view class="small">好货推荐 低价精选</view>
-				</view>
+			<!-- 广告横幅 -->
+			<view class="banner">
+				<image mode="widthFix" src="../../static/HM-shophome/banner.jpg"></image>
+			</view>
+			<!-- 商品列表 -->
+			<view class="goods-list">
+				<view class="title">— 推荐商品 —</view>
 				<view class="product-list">
-					<view v-for="product in pickList" :key="product.goods_id" @tap="toPick(product)">
-						<image mode="widthFix" :src="product.img"></image>
-						<view class="price">{{product.price}}</view>
-						<view class="slogan">{{product.slogan}}</view>
+					<view class="product" v-for="product in productList" :key="product.good_id" @tap="toGoods(product)">
+						<image mode="widthFix" :src="product.img" @error="goodErr(product)"></image>
+						<view class="name">{{product.name}}</view>
+						<view class="info">
+							<view class="price">{{product.price}}</view>
+							<view class="slogan">{{product.slogan}}</view>
+						</view>
 					</view>
 				</view>
+				<uni-load-more :status="more"></uni-load-more>
 			</view>
 		</view>
-		<!-- 广告横幅 -->
-		<view class="banner">
-			<image mode="widthFix" src="../../static/HM-shophome/banner.jpg"></image>
-		</view>
-		<!-- 商品列表 -->
-		<view class="goods-list">
-			<view class="title">— 猜你喜欢 —</view>
-			<view class="product-list">
-				<view class="product" v-for="product in productList" :key="product.goods_id" @tap="toGoods(product)">
-					<image mode="widthFix" :src="product.img"></image>
-					<view class="name">{{product.name}}</view>
-					<view class="info">
-						<view class="price">{{product.price}}</view>
-						<view class="slogan">{{product.slogan}}</view>
-					</view>
-				</view>
-			</view>
-			<view class="loading-text">{{loadingText}}</view>
-		</view>
-	</view>
+
+	
 </template>
 <script>
 import api from "../../utils/api.js";
-import popup from '../../utils/popup.js';
 import http from '../../utils/http.js';
+import uniLoadMore from "@/components/load-more/load-more.vue";
+import loading from '@/components/page-ready/ready-load.vue';
 export default {
+	components:{
+		uniLoadMore,
+		loading
+	},
 	data() {
 		return {
 			imageUrl:api.imageBaseUrl,
 			//轮播
 			swiperList:[
 			],
-			//分类
-			categoryList: [
-				[//第一页
-					{ cat_id: 0, img: '../../static/HM-shophome/category-img/0.png', title: '吹风机' },
-					{ cat_id: 1, img: '../../static/HM-shophome/category-img/1.png', title: '发箍' },
-					{ cat_id: 2, img: '../../static/HM-shophome/category-img/2.png', title: '肥皂' },
-					{ cat_id: 3, img: '../../static/HM-shophome/category-img/3.png', title: '粉饼' },
-					{ cat_id: 4, img: '../../static/HM-shophome/category-img/4.png', title: '化妆镜' },
-					{ cat_id: 5, img: '../../static/HM-shophome/category-img/5.png', title: '睫毛膏' },
-					{ cat_id: 6, img: '../../static/HM-shophome/category-img/6.png', title: '睫毛夹' },
-					{ cat_id: 7, img: '../../static/HM-shophome/category-img/7.png', title: '精华' },
-					{ cat_id: 8, img: '../../static/HM-shophome/category-img/8.png', title: '口红' },
-					{ cat_id: 9, img: '../../static/HM-shophome/category-img/9.png', title: '面膜' }
-				],
-				[//第二页
-					{ cat_id: 10, img: '../../static/HM-shophome/category-img/10.png', title: '面霜' },
-					{ cat_id: 11, img: '../../static/HM-shophome/category-img/11.png', title: '乳液' },
-					{ cat_id: 12, img: '../../static/HM-shophome/category-img/12.png', title: '梳子' },
-					{ cat_id: 13, img: '../../static/HM-shophome/category-img/13.png', title: '刷子' },
-					{ cat_id: 14, img: '../../static/HM-shophome/category-img/14.png', title: '洗脸仪' },
-					{ cat_id: 15, img: '../../static/HM-shophome/category-img/15.png', title: '洗面奶' },
-					{ cat_id: 16, img: '../../static/HM-shophome/category-img/16.png', title: '香水' }
-				]
-			],
+			cur_swiper:0,
 			//推荐商品 3个
 			pickList:[
 				{ goods_id: 0, img: '../../static/HM-shophome/pick-img/p1.jpg', price: '￥168', slogan:'限时抢购' },
@@ -123,54 +96,36 @@ export default {
 				{ goods_id: 2, img: '../../static/HM-shophome/pick-img/p3.jpg', price: '￥168', slogan:'今日疯抢' }
 			],
 			//猜你喜欢列表
-			productList:[
-				{ goods_id: 0, img: '../../static/HM-shophome/img/p1.jpg', name: '商品名称商品名称商品名称商品名称商品名称', price: '￥168', slogan:'1235人付款' },
-				{ goods_id: 1, img: '../../static/HM-shophome/img/p2.jpg', name: '商品名称商品名称商品名称商品名称商品名称', price: '￥168', slogan:'1235人付款' },
-				{ goods_id: 2, img: '../../static/HM-shophome/img/p3.jpg', name: '商品名称商品名称商品名称商品名称商品名称', price: '￥168', slogan:'1235人付款' },
-				{ goods_id: 3, img: '../../static/HM-shophome/img/p4.jpg', name: '商品名称商品名称商品名称商品名称商品名称', price: '￥168', slogan:'1235人付款' },
-				{ goods_id: 4, img: '../../static/HM-shophome/img/p5.jpg', name: '商品名称商品名称商品名称商品名称商品名称', price: '￥168', slogan:'1235人付款' },
-				{ goods_id: 5, img: '../../static/HM-shophome/img/p6.jpg', name: '商品名称商品名称商品名称商品名称商品名称', price: '￥168', slogan:'1235人付款' },
-				{ goods_id: 6, img: '../../static/HM-shophome/img/p7.jpg', name: '商品名称商品名称商品名称商品名称商品名称', price: '￥168', slogan:'1235人付款' },
-				{ goods_id: 7, img: '../../static/HM-shophome/img/p8.jpg', name: '商品名称商品名称商品名称商品名称商品名称', price: '￥168', slogan:'1235人付款' },
-				{ goods_id: 8, img: '../../static/HM-shophome/img/p9.jpg', name: '商品名称商品名称商品名称商品名称商品名称', price: '￥168', slogan:'1235人付款' },
-				{ goods_id: 9, img: '../../static/HM-shophome/img/p10.jpg', name: '商品名称商品名称商品名称商品名称商品名称', price: '￥168', slogan:'1235人付款' }
-			],
+			productList:[],
 			categoryHeight: '150px',
 			currentPageindex: 0,
 			headerPosition:"fixed",
-			loadingText:"正在加载..."
-			
+			more:'more-loading',//滚动加载提示
+			cur_page:0,//当前页
+			last_page:0,//总页数
 		};
 	},
 
 	onLoad(){
-		// uni.login({
-		//   provider: 'weixin',
-		//   success: function (loginRes) {
-		//     console.log(loginRes);
-		// 	http.get(api.AuthLoginByWeixin,loginRes.code).then(res=>{
-		// 		console.log(res)
-		// 	})
-		//   }
-		// });
-		// uni.getUserInfo({
-		// 	provider: 'weixin',
-		// 	success: function(infoRes) {
-		// 		console.log(infoRes);
-		// 	}
-		// });
-		http.get(api.Swiper,{}).then(res=>{
-			// console.log(res)
+		//首页轮播图
+		http.get(api.Swiper,{},false).then(res=>{
 			this.swiperList = res;
+			for(let index in res){
+				this.swiperList[index].pic_url = imageUrl + res[index].pic_url;
+			}
 		})
-		//单商家制定ared_id
-		http.get(api.HotGood,{area_id:4}).then(res=>{
-			this.handleProduct(res);
-			console.log(this)
+		//获取首页商品
+		this.getIndexGood(0);
+
+		http.get(api.GroupCarousel,{},false).then(res=>{
+			console.log(res)
 		})
+		
 	},
 	onReady() {
-		
+		setTimeout(()=>{
+			this.$refs.loading.hide();
+		},1500)
 	},
 	onPageScroll(e){
 		//兼容iOS端下拉时顶部漂移
@@ -188,42 +143,46 @@ export default {
     },
 	//上拉加载，需要自己在page.json文件中配置"onReachBottomDistance"
 	onReachBottom(){
-		uni.showToast({title: '触发上拉加载'});
-		let len = this.productList.length;
-		if(len>=40){
-			this.loadingText="到底了";
-			return false;
+		if(this.cur_page+1 > this.last_page){
+			return;
 		}
-		let end_goods_id = this.productList[len-1].goods_id;
-		for(let i=1;i<=10;i++){
-			let goods_id = end_goods_id+i;
-			let p = { goods_id: goods_id, img: '../../static/HM-shophome/img/p'+(goods_id%10==0?10:goods_id%10)+'.jpg', name: '商品名称商品名称商品名称商品名称商品名称', price: '￥168', slogan:'1235人付款' };
-			this.productList.push(p);
-		}
+		this.$refs.loading.show();
+		this.getIndexGood(this.cur_page+1);
+		this.$refs.loading.hide();
 	},
 	methods: {
+		getIndexGood(page){
+			http.get(api.HotGood,{page:page},false).then(res=>{
+				console.log(res)
+				this.cur_page = res.current_page;
+				this.last_page = res.last_page;
+				this.handleProduct(res.data);
+			})
+		},
 		handleProduct(product){
 			// this.productList = [];
-			// var proItem = new Object;
+			var proItem = new Object;
 			for(let index in product){
-				this.productList[index].img = this.imageUrl + product[index].goodsInfo.hot_pic_url;
-				this.productList[index].name = product[index].goodsInfo.goods_name + product[index].goodsInfo.goods_desc;
-				this.productList[index].price = product[index].goodsInfo.retail_price;
-				// this.productList.push(proItem);
-				// proItem = {};
+				var item = product[index];
+				proItem['img'] = this.imageUrl + item.hot_pic_url;
+				proItem['name'] = item.goods_name + item.goods_desc;
+				proItem['price'] = `￥${item.retail_price}`;
+				proItem['good_id'] = item.id;
+				this.productList.push(proItem);
+				proItem = {};
 			}
 		},
-		//扫一扫
-		scan(){
-			uni.scanCode({
-				success:(res)=>{
-					uni.showToast({title: '条码内容：' + res.result});
-				}
-			});
+		//swiper
+		swiperChange(e){
+			this.cur_swiper = e.detail.current;
 		},
-		//搜索跳转
-		toSearch(){
-			uni.showToast({title: "建议跳转到新页面做搜索功能"});
+		//轮播图图片加载失败
+		imgErr(index){
+			this.swiperList[index].pic_url = '../../static/img/imgErr.jpg';
+		},
+		//商品图片加载失败
+		goodErr(good){
+			good.img = '../../static/img/imgErr.jpg';
 		},
 		//轮播图跳转
 		toSwiper(e){
@@ -239,7 +198,9 @@ export default {
 		},
 		//商品跳转
 		toGoods(e){
-			uni.showToast({title: '商品'+e.goods_id});
+			uni.navigateTo({
+				url:`../goodDetail/goodDetail?good_id=${e.good_id}`,
+			})
 		},
 		//更新分类指示器
 		categoryChange(event) {
@@ -370,14 +331,45 @@ page {
 	height: 100upx;
 }
 .swiper-view {
-	.swiper {
+	margin-top: 20rpx;
+	.banner-swiper {
 		width: 100%;
-		height: 320upx;
-		image {
-			width: 100%;
-			height: 320upx;
+		height: 280upx;
+		.swiper-item {
+			padding: 0 16rpx;
+			box-sizing: border-box;
+			.swiper-image {
+				width: 100%;
+				height:  280upx;
+				display: block;
+				border-radius: 12rpx;
+			}		
+			.image-scale {
+				transform: scaleY(0.9);
+				transform-origin: center center;
+			}
 		}
-	}
+		.wx-swiper-dot {
+			width: 16rpx;
+			height: 16rpx;
+			display: inline-flex;
+			background: none;
+			justify-content: space-between;
+		}		
+		.wx-swiper-dot::before {
+			content: '';
+			flex-grow: 1;
+			background: rgba(255, 255, 255, 0.8);
+			border-radius: 16rpx;
+			overflow: hidden;
+		}			
+		.wx-swiper-dot-active::before {
+			background: #ff743c;
+		}			
+		.wx-swiper-dot.wx-swiper-dot-active {
+			width: 32rpx;
+		}
+	}			
 	.keep-out {
 		width: 100%;
 		height: 50upx;

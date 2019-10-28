@@ -9,35 +9,39 @@
 		<!-- 商品列表 -->
 		<view class="goods-list">
 			<view class="tis" v-if="goodsList.length==0">购物车是空的哦~</view>
-            <view class="row" v-for="(row,index) in goodsList" :key="index" >
+            <view class="row" v-for="(good,index) in goodsList" :key="index" >
 				<!-- 删除按钮 -->
-				<view class="menu" @tap.stop="deleteGoods(row.id)">
+				<view class="menu" @tap.stop="deleteGoods(good)">
 					<view class="icon shanchu"></view>
 				</view>
 				<!-- 商品 -->
-				<view class="carrier" :class="[theIndex==index?'open':oldIndex==index?'close':'']" @touchstart="touchStart(index,$event)" @touchmove="touchMove(index,$event)" @touchend="touchEnd(index,$event)">
+				<view class="carrier" :class="[theIndex==index?'open':oldIndex==index?'close':'']" 
+						@touchstart="touchStart(index,$event)" @touchmove="touchMove(index,$event)" 
+						@touchend="touchEnd(index,$event)">
 					<!-- checkbox -->
-					<view class="checkbox-box" @tap="selected(index)">
+					<view class="checkbox-box" @tap="selected(good)">
 						<view class="checkbox">
-							<view :class="[row.selected?'on':'']"></view>
+							<view :class="[good.selected?'on':'']"></view>
 						</view>
 					</view>
+					<!-- 下架提示-->
+					<view v-if='!good.is_sale' class="icon shixiao"></view>
 					<!-- 商品信息 -->
-					<view class="goods-info" @tap="toGoods(row)">
+					<view class="goods-info" @tap="toGoods(good)">
 						<view class="img">
-							<image :src="row.img"></image>
+							<image :src="good.img"></image>
 						</view>
 						<view class="info">
-							<view class="title">{{row.name}}</view>
-							<view class="spec">{{row.spec}}</view>
+							<view class="title">{{good.name}}</view>
+							<view class="spec">{{good.spec}}</view>
 							<view class="price-number">
-								<view class="price">￥{{row.price}}</view>
+								<view class="price">￥{{good.price}}</view>
 								<view class="number">
 									<view class="sub" @tap.stop="sub(index)">
 										<view class="icon jian"></view>
 									</view>
 									<view class="input" @tap.stop="discard">
-										<input type="number" v-model="row.number" @input="sum($event,index)" />
+										<input type="number" v-model="good.number" @blur="sum($event,index)" />
 									</view>
 									<view class="add"  @tap.stop="add(index)">
 										<view class="icon jia"></view>
@@ -60,35 +64,33 @@
 			<view class="delBtn" @tap="deleteList" v-if="selectedList.length>0">删除</view>
 			<view class="settlement">
 				<view class="sum">合计:<view class="money">￥{{sumPrice}}</view></view>
-				<view class="btn" @tap="toConfirmation">结算({{selectedList.length}})</view>
+				<view class="btn" @tap="toConfirmation">结算({{selecGoodNum}})</view>
 			</view>
 		</view>
 	</view>
 </template>
 
 <script>
-
+	import api from "../../utils/api.js";
+	import http from '../../utils/http.js';
+	import popup from '../../utils/popup.js';
 	export default {
 		data() {
 			return {
-				sumPrice:'0.00',
+				
 				headerPosition:"fixed",
 				headerTop:null,
 				statusTop:null,
-				showHeader:true,
+				showHeader:false,
 				selectedList:[],
 				isAllselected:false,
-				goodsList:[
-					{id:1,img:'/static/goods/p1.jpg',name:'商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题',spec:'规格:S码',price:127.5,number:1,selected:false},
-					{id:2,img:'/static/goods/p2.jpg',name:'商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题',spec:'规格:S码',price:127.5,number:1,selected:false},
-					{id:3,img:'/static/goods/p3.jpg',name:'商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题',spec:'规格:S码',price:127.5,number:1,selected:false},
-					{id:4,img:'/static/goods/p4.jpg',name:'商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题',spec:'规格:S码',price:127.5,number:1,selected:false},
-					{id:5,img:'/static/goods/p5.jpg',name:'商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题商品标题',spec:'规格:S码',price:127.5,number:1,selected:false}
-				],
+				goodsList:[],
 				//控制滑动效果
 				theIndex:null,
 				oldIndex:null,
-				isStop:false
+				isStop:false,
+				selecGoodNum:0,//已选中的所有商品
+				sumPrice:'0.00',//已选中的所有商品价格
 			}
 		},
 		onPageScroll(e){
@@ -99,9 +101,9 @@
 		},
 		//下拉刷新，需要自己在page.json文件中配置开启页面下拉刷新 "enablePullDownRefresh": true
 		onPullDownRefresh() {
-		    setTimeout(function () {
-		        uni.stopPullDownRefresh();
-		    }, 1000);
+		    // setTimeout(function () {
+		    //     uni.stopPullDownRefresh();
+		    // }, 1000);
 		},
 		onLoad() {
 			//兼容H5下结算条位置
@@ -112,31 +114,194 @@
 			this.showHeader = false;
 			this.statusHeight = plus.navigator.getStatusbarHeight();
 			// #endif
+			
+		},
+		onShow(){
+			http.get(api.CartList,{user_id:uni.getStorageSync('userInfo').id}).then(res=>{
+				console.log(res)
+				this.selecGoodNum=res.CountNum;//已选中的所有商品
+				this.sumPrice=res.TotalPrice;//已选中的所有商品价格
+				if(res.cartList.length==0){
+					this.goodsList=[];
+				}else{
+					this.handleGood(res.cartList);
+				}				
+			})
 		},
 		methods: {
-			//加入商品 参数 goods:商品数据
-			joinGoods(goods){
-				/*
-				* 这里只是展示一种添加逻辑，模板并没有做从其他页面加入商品到购物车的具体动作，
-				* 在实际应用上，前端并不会直接插入记录到goodsList这一个动作，一般是更新列表和本地列表缓存。
-				* 一般商城购物车的增删改动作是由后端来完成的,
-				* 后端记录后返回前端更新前端缓存
-				*/
-				let len = this.goodsList.length;
-				let isFind = false;//是否找到ID一样的商品
-				for(let i=0;i<len;i++){
-					let row = this.goodsList[i];
-					if(row.id==goods.id )
-					{	//找到商品一样的商品
-						this.goodsList[i].number++;//数量自增
-						isFind = true;//找到一样的商品
-						break;//跳出循环
-					}
+			handleGood(goods){
+				var good = new Object();
+				this.goodsList = [];
+				for(let item of goods){
+					good['goods_id'] = item.goods_id;
+					good['img'] = api.imageBaseUrl + item.primary_pic_url;
+					good['name'] = item.goods_name;
+					good['spec'] = item.goods_specifition_name_value?item.goods_specifition_name_value:'默认属性';
+					good['price'] = item.retail_price;
+					good['number'] = item.number;
+					good['selected'] = item.is_on_sale?item.checked:0;
+					good['cart_id'] = item.id;
+					good['is_sale'] = item.is_on_sale;
+					this.goodsList.push(good);
+					good = {};
 				}
-				if(!isFind){
-					//没有找到一样的商品，新增一行到购物车商品列表头部
-					this.goodsList[i].unshift(goods);
+			},
+			//删除下架商品
+			hanldeInvalidGood(cart_id){
+				popup.modal({
+					title:'下架商品提示',
+					content:'该商品已下架，您希望将它从购物车中移除吗？',
+					confirmText:'移除商品',
+					success:(res=>{
+						if(res.confirm){
+							http.post(api.CartDelete,{id:cart_id,user_id:uni.getStorageSync('userInfo')}).then(res=>{
+								console.log(res)
+								this.selecGoodNum=res.CountNum;//已选中的所有商品
+								this.sumPrice=res.TotalPrice;//已选中的所有商品价格
+								if(res.cartList.length==0){
+									this.goodsList=[];
+								}else{
+									this.handleGood(res.cartList);
+								}
+							})
+						}
+					})
+				})
+			},
+			//商品跳转
+			toGoods(good){
+				if(!good.is_sale){
+					this.hanldeInvalidGood(good.cart_id);
+					return ;
 				}
+				uni.navigateTo({
+					url: `../goodDetail/goodDetail?good_id=${good.goods_id}`,
+				});
+			},
+			//删除单个商品
+			deleteGoods(good){
+				popup.modal({
+					title:'移除商品',
+					content:'您确定将选中商品移除购物车吗？',
+					success:(res=>{
+						if(res.confirm){
+							http.post(api.CartDelete,{id:good.cart_id, user_id:uni.getStorageSync('userInfo').id}).then(res=>{
+								console.log(res)
+								this.selecGoodNum=res.CountNum;//已选中的所有商品
+								this.sumPrice=res.TotalPrice;//已选中的所有商品价格
+								if(res.cartList.length==0){
+									this.goodsList=[];
+								}else{
+									this.handleGood(res.cartList);
+								}
+							})
+						}
+					})
+				})
+			},
+			// 删除所有商品
+			deleteList(){
+				//等待新的api
+			},
+			// 选中商品
+			selected(good){
+				if(!good.is_sale){
+					this.hanldeInvalidGood(good.cart_id);
+					return ;
+				}
+				http.post(api.CartChecked,{
+				          goods_id: good.goods_id,
+				          id:       good.cart_id,
+				          user_id:  uni.getStorageSync('userInfo').id,
+				          checked:  good.selected?0:1}).then(res=>{
+				            console.log(res);
+							this.selecGoodNum=res.CountNum;//已选中的所有商品
+							this.sumPrice=res.TotalPrice;//已选中的所有商品价格
+							if(res.cartList.length==0){
+								this.goodsList=[];
+							}else{
+								this.handleGood(res.cartList);
+							}
+						})	
+			},
+			//全选
+			allSelect(){
+				http.post(api.CartChechedAll,{shop_id:currentShop.id,
+				      user_id:wx.getStorageSync('userInfoInServer').id,
+				      checked_all:currentShop.shopChecked}).then(res=>{
+				        console.log(res)
+				        this.allList = res;   
+				        this.$apply() ;  
+				}) 
+			},
+			// 减少数量
+			sub(index){
+				if(this.goodsList[index].number<=1){
+					return;
+				}
+				this.goodsList[index].number--;
+				this.sum(null,index);
+			},
+			// 增加数量
+			add(index){
+				this.goodsList[index].number++;
+				this.sum(null,index);
+			},
+			// 合计
+			sum(e,index){
+				console.log(index)
+				if(e){
+					this.goodsList[index].number=(e.detail.value);
+				}
+				//提交商品数目
+				http.post(api.CartUpdate,{
+						id:      this.goodsList[index].cart_id,
+						goods_id:this.goodsList[index].goods_id,
+						number:  this.goodsList[index].number,
+						user_id: uni.getStorageSync('userInfo').id
+					  },true).then(res=>{
+						console.log(res);
+						if(res.code == 201){
+						  popup.toast('添加失败','../../static/img/warn.png');
+						}else{
+							this.selecGoodNum=res.CountNum;//已选中的所有商品
+							this.sumPrice=res.TotalPrice;//已选中的所有商品价格
+							if(res.cartList.length==0){
+								this.goodsList=[];
+							}else{
+								this.handleGood(res.cartList);
+							}
+						}
+					})
+			},
+			//结算
+			toConfirmation(){
+				if(this.selecGoodNum == 0){
+					popup.toast('请选择商品结算','../../static/img/warn.png');
+					return ;
+				}
+				//设置默认地址
+				uni.getStorage({
+					key:'userDefaultAddress',
+					fail:(res=>{
+						popup.modal({
+							title:'设置默认地址',
+							content:'您还没有设置默认收货地址哦～',
+							confirmText:'前往设置',
+							success:(res=>{
+								if(res.confirm){
+									uni.navigateTo({
+										url:"../address/list",
+									})
+								}
+							})
+						})
+					})
+				})
+				//跳转到订单填写页
+				uni.navigateTo({
+					url:'../orderConfirm/orderConfirm',
+				})
 			},
 			//控制左滑删除效果-begin
 			touchStart(index,event){
@@ -188,113 +353,6 @@
 			},
 			//控制左滑删除效果-end
 			
-			
-			//商品跳转
-			toGoods(e){
-				uni.showToast({title: '商品'+e.id,icon:"none"});
-				uni.navigateTo({
-					url: '../../goods/goods' 
-				});
-			},
-			//跳转确认订单页面
-			toConfirmation(){
-				let tmpList=[];
-				let len = this.goodsList.length;
-				for(let i=0;i<len;i++){
-					if(this.goodsList[i].selected) {
-						tmpList.push(this.goodsList[i]);
-					}
-				}
-				if(tmpList.length<1){
-					uni.showToast({
-						title:'请选择商品结算',
-						icon:'none'
-					});
-					return ;
-				}
-				uni.setStorage({
-					key:'buylist',
-					data:tmpList,
-					success: () => {
-						uni.navigateTo({
-							url:'../../order/confirmation'
-						})
-					}
-				})
-			},
-			//删除商品
-			deleteGoods(id){
-				let len = this.goodsList.length;
-				for(let i=0;i<len;i++){
-					if(id==this.goodsList[i].id){
-						this.goodsList.splice(i, 1);
-						break;
-					}
-				}
-				this.selectedList.splice(this.selectedList.indexOf(id), 1);
-				this.sum();
-				this.oldIndex = null;
-				this.theIndex = null;
-			},
-			// 删除商品s
-			deleteList(){
-				let len = this.selectedList.length;
-				while (this.selectedList.length>0)
-				{
-					this.deleteGoods(this.selectedList[0]);
-				}
-				this.selectedList = [];
-				this.isAllselected = this.selectedList.length == this.goodsList.length && this.goodsList.length>0;
-				this.sum();
-			},
-			// 选中商品
-			selected(index){
-				this.goodsList[index].selected = this.goodsList[index].selected?false:true;
-				let i = this.selectedList.indexOf(this.goodsList[index].id);
-				i>-1?this.selectedList.splice(i, 1):this.selectedList.push(this.goodsList[index].id);
-				this.isAllselected = this.selectedList.length == this.goodsList.length;
-				this.sum();
-			},
-			//全选
-			allSelect(){
-				let len = this.goodsList.length;
-				let arr = [];
-				for(let i=0;i<len;i++){
-					this.goodsList[i].selected = this.isAllselected? false : true;
-					arr.push(this.goodsList[i].id);
-				}
-				this.selectedList = this.isAllselected?[]:arr;
-				this.isAllselected = this.isAllselected||this.goodsList.length==0?false : true;
-				this.sum();
-			},
-			// 减少数量
-			sub(index){
-				if(this.goodsList[index].number<=1){
-					return;
-				}
-				this.goodsList[index].number--;
-				this.sum();
-			},
-			// 增加数量
-			add(index){
-				this.goodsList[index].number++;
-				this.sum();
-			},
-			// 合计
-			sum(e,index){
-				this.sumPrice=0;
-				let len = this.goodsList.length;
-				for(let i=0;i<len;i++){
-					if(this.goodsList[i].selected) {
-						if(e && i==index){
-							this.sumPrice = this.sumPrice + (e.detail.value*this.goodsList[i].price);
-						}else{
-							this.sumPrice = this.sumPrice + (this.goodsList[i].number*this.goodsList[i].price);
-						}
-					}
-				}
-				this.sumPrice = this.sumPrice.toFixed(2);
-			},
 			discard() {
 				//丢弃
 			}
@@ -343,7 +401,6 @@
 		height: var(--status-bar-height);//覆盖样式
 		/*  #endif  */
 	}
-
 	.header{
 		width: 92%;
 		padding: 0 4%;
@@ -430,6 +487,13 @@
 					height: 22vw;
 					margin-right: 20upx;
 				}
+				.shixiao{
+					position: absolute;
+					right: 20upx;
+					font-size: 150upx;
+					z-index: 6;
+					color: rgba(153,153,153,0.9)
+				}
 				position: absolute;
 				width: 100%;
 				padding: 0 0;
@@ -437,7 +501,6 @@
 				z-index: 3;
 				display: flex;
 				align-items: center;
-
 				.goods-info{
 					width: 100%;
 					display: flex;
